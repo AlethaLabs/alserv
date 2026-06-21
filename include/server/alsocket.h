@@ -3,14 +3,21 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-// TODO - Add all sockopt flags
-enum class SockFlag : int {
-	ReuseAddr
+// TODO - Add all sockopt flags - *** man 7 socket ***
+enum class SetSockFlag : int {
+	ReuseAddr, // SO_REUSEADDR
+	ABPF, // SO_ATTACH_FILTER - takes structure sock_fprog
+	AeBPF, // SO_ATTACH_BPF - same as above
 };
 
 // TODO - Add all socket levels
-enum class SockLevel : int {
-	Socket,
+enum class SetSockLevel : int {
+	Socket, // SOL_SOCKET - all types - default
+};
+
+// TODO - Add all readonly flags
+enum class GetSockInfo : int {
+	IsListen, // SO_ACCEPTCONN 
 };
 
 typedef struct {
@@ -24,7 +31,7 @@ class Socket {
 		Socket();
 		~Socket();
 		
-		// Creates and binds socket
+		// Creates socket
 		int create(
 			const char* host,
 			const char* service,
@@ -40,6 +47,8 @@ class Socket {
 			
 		// Must be ran in a while loop
 		int accept_connect(int clientfd);
+
+		int connect(int sockfd, const struct addrinfo* res = nullptr, socklen_t len_addr = 0);
 
 	private:
 		struct addrinfo* res_;

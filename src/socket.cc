@@ -21,7 +21,7 @@ Socket::~Socket() {
  * Helpers for get sockopts
 */
 // TODO - finish all flags
-int translate_flag(SockFlag flag) {
+int translate_flag(SetSockFlag flag) {
 	int t_flag; // translated flag
 	switch (flag) {
 		case SockFlag::ReuseAddr:
@@ -32,7 +32,7 @@ int translate_flag(SockFlag flag) {
 }
 
 // TODO - finish all levels
-int translate_level(SockLevel level) {
+int translate_level(SetSockLevel level) {
 	int t_level;
 	switch (level) {
 		case SockLevel::Socket:
@@ -154,4 +154,26 @@ int Socket::accept_connect(int sockfd) {
 		return clientfd;
 	}
 	return clientfd;
+}
+
+/*
+ * Connect to server
+ *	- for client use only
+ */
+int Socket::connect(int sockfd, const struct addrinfo* res = nullptr, socklen_t len_addr = 0) {
+	const struct addrinfo* target = (res != nullptr) ? res : res_;
+
+	if (target == nullptr) {
+		errno = EINVAL;
+		perror("bind");
+		::close(sockfd);
+		return -1;
+	}
+
+	if (::connect(sockfd, target->ai_addr, target->ai_addrlen) < 0) {
+		perror("bind");
+		::close(sockfd);
+		return -1;
+	}
+	return sockfd;
 }
