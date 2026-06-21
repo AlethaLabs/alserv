@@ -22,24 +22,22 @@ Socket::~Socket() {
 */
 // TODO - finish all flags
 int translate_flag(SetSockFlag flag) {
-	int t_flag; // translated flag
 	switch (flag) {
-		case SockFlag::ReuseAddr:
-			t_flag = SO_REUSEADDR;
-			return t_flag;
+		case SetSockFlag::ReuseAddr:
+			return SO_REUSEADDR;
+		default:
+			return -1;
 	}
-	return t_flag;	
 }
 
 // TODO - finish all levels
 int translate_level(SetSockLevel level) {
-	int t_level;
 	switch (level) {
-		case SockLevel::Socket:
-			t_level = SOL_SOCKET;
-			return t_level;
+		case SetSockLevel::Socket:
+			return SOL_SOCKET;
+		default:
+			return -1;
 	}
-	return t_level;
 }
 
 /*
@@ -83,15 +81,15 @@ int Socket::create(
 	// TODO - handle this better, maybe seperate function
 	// Set sockopts	
 	if (opts != nullptr) {
-		int opt_value = opts->opt_value;
-		if (::setsockopt(
-				sockfd,
-				translate_level(opts->level),
-				translate_flag(opts->flag),
-				&opt_value,
-				sizeof(opt_value)
-			    ) < 0) {
-            perror("setsokopt");
+		int level = translate_level(opts->level);
+		int flag  = translate_flag(opts->flag);
+		if (level < 0 || flag < 0) {
+			std::cerr << "setsockopt: unknown level or flag\n";
+		} else {
+			int opt_value = opts->opt_value;
+			if (::setsockopt(sockfd, level, flag, &opt_value, sizeof(opt_value)) < 0) {
+				perror("setsockopt");
+			}
 		}
 	} else {
 		int opt = 1;
@@ -125,7 +123,8 @@ int Socket::bind(int sockfd, const struct addrinfo* res) {
 	return sockfd;
 }
 
-/* Begins listening for client connection
+/* 
+ * Begins listening for client connection
  */
 int Socket::listen(int sockfd, int backlog, const struct addrinfo*) {
 	if (::listen(sockfd, backlog) < 0) {
@@ -141,17 +140,14 @@ int Socket::listen(int sockfd, int backlog, const struct addrinfo*) {
  *	- takes a bound and listening socket
  *	- returns the client socket details
  */
-int Socket::accept_connect(int sockfd) { 
-	sockaddr_in client{};
+int Socket::accept_connect(int sockfd) {
+	sockaddr_storage client{};
 	socklen_t len = sizeof(client);
 
 	int clientfd = ::accept(sockfd, (sockaddr*)&client, &len);
 	if (clientfd < 0) {
 		perror("accept");
-		::close(sockfd);
 		return -1;
-	} else {
-		return clientfd;
 	}
 	return clientfd;
 }
@@ -160,18 +156,18 @@ int Socket::accept_connect(int sockfd) {
  * Connect to server
  *	- for client use only
  */
-int Socket::connect(int sockfd, const struct addrinfo* res = nullptr, socklen_t len_addr = 0) {
+int Socket::connect(int sockfd, const struct addrinfo* res) {
 	const struct addrinfo* target = (res != nullptr) ? res : res_;
 
 	if (target == nullptr) {
 		errno = EINVAL;
-		perror("bind");
+		perror("connect");
 		::close(sockfd);
 		return -1;
 	}
 
 	if (::connect(sockfd, target->ai_addr, target->ai_addrlen) < 0) {
-		perror("bind");
+		perror("connect");
 		::close(sockfd);
 		return -1;
 	}

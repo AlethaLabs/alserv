@@ -21,8 +21,8 @@ enum class GetSockInfo : int {
 };
 
 typedef struct {
-	SockFlag flag;
-	SockLevel level;
+	SetSockFlag flag;
+	SetSockLevel level;
 	int opt_value;
 } SockOpts;
 
@@ -47,8 +47,9 @@ class Socket {
 			
 		// Must be ran in a while loop
 		int accept_connect(int clientfd);
-
-		int connect(int sockfd, const struct addrinfo* res = nullptr, socklen_t len_addr = 0);
+		
+		// 
+		int connect(int sockfd, const struct addrinfo* res = nullptr);
 
 	private:
 		struct addrinfo* res_;

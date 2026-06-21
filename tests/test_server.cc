@@ -11,7 +11,7 @@ int main() {
 	hints.ai_flags = AI_PASSIVE;
 
 	Socket socket;
-	int sockfd = socket.create("localhost", "0", &hints);
+	int sockfd = socket.create("localhost", "8080", &hints);
 	assert(sockfd >= 0);
 
 	int bound = socket.bind(sockfd);
