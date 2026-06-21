@@ -1,4 +1,4 @@
-#include "../include/server/socket.h"
+#include "../include/server/alsocket.h"
 
 #include <cassert>
 #include <netdb.h>
@@ -14,9 +14,11 @@ int main() {
 	int sockfd = socket.create("localhost", "0", &hints);
 	assert(sockfd >= 0);
 
-	int clientfd = socket.accept_connect(sockfd);
-	assert(sockfd > 0);
-	::close(clientfd);
+	int bound = socket.bind(sockfd);
+	assert(bound >= 0);
+
+	int listening = socket.listen(sockfd);
+	assert(listening >= 0);
 
 	::close(sockfd);
 	return 0;

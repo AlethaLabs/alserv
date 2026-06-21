@@ -2,14 +2,20 @@
 #include <sys/types.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <cerrno>
 
 #include <iostream>
 
-#include "server/socket.h"
+#include "server/alsocket.h"
 
-Socket::Socket() {}
+Socket::Socket() : res_(nullptr) {}
 
-Socket::~Socket() {}
+Socket::~Socket() {
+	if (res_ != nullptr) {
+		freeaddrinfo(res_);
+		res_ = nullptr;
+	}
+}
 
 /* 
  * Helpers for get sockopts
@@ -37,7 +43,7 @@ int translate_level(SockLevel level) {
 }
 
 /*
- * Creates and binds a socket:
+ * Creates a socket:
  * 	- uses getaddrinfo to populate socket paramaters
  *  	- host: address you wish to bind socket - ex:"localhost"
  *  	- service: port or protocol type - ex:"http" or "80"
@@ -50,21 +56,27 @@ int Socket::create(
 		const char* host,
 		const char* service, 
 		const struct addrinfo* hints,
-		const SockOpts* opts,
-		int backlog
+		const SockOpts* opts
 		) {
-	addrinfo* res = nullptr;
+	addrinfo* resolved = nullptr;
 	
-	int stats = getaddrinfo(host, service, hints, &res);
+	int stats = getaddrinfo(host, service, hints, &resolved);
 	if (stats != 0) {
 		std::cerr << "Address resolution failed: " << gai_strerror(stats) << "\n";
 		return -1;
 	} 
 
-	int sockfd = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+	if (res_ != nullptr) {
+		freeaddrinfo(res_);
+		res_ = nullptr;
+	}
+	res_ = resolved;
+
+	int sockfd = ::socket(resolved->ai_family, resolved->ai_socktype, resolved->ai_protocol);
 	if (sockfd < 0) {
 		perror("Error creating socket");
-		freeaddrinfo(res);
+		freeaddrinfo(res_);
+		res_ = nullptr;
 		return -1;
 	}
 	
@@ -88,25 +100,47 @@ int Socket::create(
 		}
 	}
 
-	if (::bind(sockfd, res->ai_addr, res->ai_addrlen) < 0) {
-		perror("bind");
-		::close(sockfd);
-		freeaddrinfo(res);
-		return -1;
-	}
-	
-	if (::listen(sockfd, backlog) < 0) {
-		perror("listen");
-		::close(sockfd);
-		freeaddrinfo(res);
-		return -1;
-	}
-
-	// ****** free addrinfo *****
-	freeaddrinfo(res);
 	return sockfd;
 }
 
+/* Binds socket to address
+ *	- takes as paramater an already creatd socket - sockfd
+ *	- also takes the addrinfo or nullptr
+ */
+int Socket::bind(int sockfd, const struct addrinfo* res) {
+	const struct addrinfo* target = (res != nullptr) ? res : res_;
+
+	if (target == nullptr) {
+		errno = EINVAL;
+		perror("bind");
+		::close(sockfd);
+		return -1;
+	}
+
+	if (::bind(sockfd, target->ai_addr, target->ai_addrlen) < 0) {
+		perror("bind");
+		::close(sockfd);
+		return -1;
+	}
+	return sockfd;
+}
+
+/* Begins listening for client connection
+ */
+int Socket::listen(int sockfd, int backlog, const struct addrinfo*) {
+	if (::listen(sockfd, backlog) < 0) {
+		perror("listen");
+		::close(sockfd);
+		return -1;
+	}
+	return sockfd;
+}
+
+/* Accepts client connection
+ *	- recommended to put inside server loop
+ *	- takes a bound and listening socket
+ *	- returns the client socket details
+ */
 int Socket::accept_connect(int sockfd) { 
 	sockaddr_in client{};
 	socklen_t len = sizeof(client);
