@@ -20,6 +20,11 @@ int main() {
 	int listening = socket.listen(sockfd);
 	assert(listening >= 0);
 
+	while(1) {
+		int clientfd = socket.accept(sockfd);
+		if (clientfd < 0) continue;
+	}
+
 	::close(sockfd);
 	return 0;
 }

@@ -1,9 +1,9 @@
 CXX := clang++
-CXXFLAGS := -std=c++17 -Wall -Wextra -Iinclude
+CXXFLAGS := -std=c++17 -Wall -Wextra -I../include
 
-SRC := src/socket.cc
-TEST_SRCS := $(wildcard tests/test_*.cc)
-TEST_BINS := $(patsubst tests/%.cc, build/%, $(TEST_SRCS))
+SRC := ../src/socket.cc
+TEST_SRCS := $(wildcard test_*.cc)
+TEST_BINS := $(patsubst %.cc, build/%, $(TEST_SRCS))
 
 .PHONY: all test run-test clean
 
@@ -11,7 +11,7 @@ all: test
 
 test: $(TEST_BINS)
 
-build/%: tests/%.cc $(SRC) include/server/alsocket.h
+build/%: %.cc $(SRC) ../include/server/alsocket.h
 	@mkdir -p build
 	$(CXX) $(CXXFLAGS) $(SRC) $< -o $@
 

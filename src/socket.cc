@@ -44,7 +44,7 @@ int translate_level(SetSockLevel level) {
  * Creates a socket:
  * 	- uses getaddrinfo to populate socket paramaters
  *  	- host: address you wish to bind socket - ex:"localhost"
- *  	- service: port or protocol type - ex:"http" or "80"
+ *  	- service: port or protocol type - ex:"http" or "8080"
  * 	- Optionals:
  *		- provide custom hints for address resolution
  *		- provide socket option flags
@@ -140,7 +140,7 @@ int Socket::listen(int sockfd, int backlog, const struct addrinfo*) {
  *	- takes a bound and listening socket
  *	- returns the client socket details
  */
-int Socket::accept_connect(int sockfd) {
+int Socket::accept(int sockfd) {
 	sockaddr_storage client{};
 	socklen_t len = sizeof(client);
 

@@ -26,6 +26,22 @@ typedef struct {
 	int opt_value;
 } SockOpts;
 
+/*
+* Socket:
+*	--- Example ---
+*	Socket socket;
+*
+*	addrinfo hints {};
+* 	hints.ai_family = AF_INET;
+*	hints.ai_socktype = SOCK_STREAM;
+*	hints.ai_flags = AI_PASSIVE;
+*
+*	int sockfd = socket.create("localhost", "8080", &hints);
+*	assert(sockfd >= 0);
+*
+*	int bound = socket.bind(sockfd);
+*	assert(bound >= 0);
+*/
 class Socket {
 	public:
 		Socket();
@@ -37,7 +53,7 @@ class Socket {
 			const char* service,
 			const struct addrinfo* hints = nullptr,
 			const SockOpts* opts = nullptr
-			);
+		);
 		
 		// Binds socket
 		int bind(int sockfd, const struct addrinfo* res = nullptr);
@@ -46,9 +62,9 @@ class Socket {
 		int listen(int sockfd, int backlog = 5, const struct addrinfo* res = nullptr);
 			
 		// Must be ran in a while loop
-		int accept_connect(int clientfd);
+		int accept(int sockfd);
 		
-		// 
+		// For client 
 		int connect(int sockfd, const struct addrinfo* res = nullptr);
 
 	private:
