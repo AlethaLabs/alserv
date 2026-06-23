@@ -8,23 +8,51 @@
 
 #include "server/alsocket.h"
 
-Socket::Socket() : res_(nullptr) {}
+Socket::Socket() : sockfd_(-1), res_(nullptr) {}
 
 Socket::~Socket() {
+	if (sockfd_ >= 0) {
+		::close(sockfd_);
+		sockfd_ = -1;
+	}
 	if (res_ != nullptr) {
 		freeaddrinfo(res_);
 		res_ = nullptr;
 	}
 }
 
+Socket::Socket(Socket&& other) noexcept
+	: sockfd_(other.sockfd_), res_(other.res_) {
+	other.sockfd_ = -1;
+	other.res_ = nullptr;
+}
+
+Socket& Socket::operator=(Socket&& other) noexcept {
+	if (this != &other) {
+		if (sockfd_ >= 0) ::close(sockfd_);
+		if (res_ != nullptr) freeaddrinfo(res_);
+		sockfd_ = other.sockfd_;
+		res_ = other.res_;
+		other.sockfd_ = -1;
+		other.res_ = nullptr;
+	}
+	return *this;
+}
+
 /* 
- * Helpers for get sockopts
+ * Helpers for get sockopts:
 */
 // TODO - finish all flags
 int translate_flag(SetSockFlag flag) {
 	switch (flag) {
 		case SetSockFlag::ReuseAddr:
 			return SO_REUSEADDR;
+#ifdef __linux__
+		case SetSockFlag::ABPF:
+			return SO_ATTACH_FILTER;
+		case SetSockFlag::AeBPF:
+			return SO_ATTACH_BPF;
+#endif
 		default:
 			return -1;
 	}
@@ -45,16 +73,14 @@ int translate_level(SetSockLevel level) {
  * 	- uses getaddrinfo to populate socket paramaters
  *  	- host: address you wish to bind socket - ex:"localhost"
  *  	- service: port or protocol type - ex:"http" or "8080"
- * 	- Optionals:
+ * 	- Optional:
  *		- provide custom hints for address resolution
- *		- provide socket option flags
  * 	- returns -1 on error
  */
 int Socket::create(
 		const char* host,
-		const char* service, 
-		const struct addrinfo* hints,
-		const SockOpts* opts
+		const char* service,
+		const struct addrinfo* hints
 		) {
 	addrinfo* resolved = nullptr;
 	
@@ -78,73 +104,78 @@ int Socket::create(
 		return -1;
 	}
 	
-	// TODO - handle this better, maybe seperate function
-	// Set sockopts	
-	if (opts != nullptr) {
-		int level = translate_level(opts->level);
-		int flag  = translate_flag(opts->flag);
-		if (level < 0 || flag < 0) {
-			std::cerr << "setsockopt: unknown level or flag\n";
-		} else {
-			int opt_value = opts->opt_value;
-			if (::setsockopt(sockfd, level, flag, &opt_value, sizeof(opt_value)) < 0) {
+	if (sockfd_ >= 0) ::close(sockfd_);
+	sockfd_ = sockfd;
+	return 0;
+}
+
+int Socket::setopts(const SockOpts* opts, int opts_count) {
+	if (opts != nullptr && opts_count > 0) {
+		for (int i = 0; i < opts_count; i++) {
+			int level = translate_level(opts[i].level);
+			int flag  = translate_flag(opts[i].flag);
+			if (level < 0 || flag < 0) {
+				std::cerr << "setsockopt: unknown level or flag\n";
+				continue;
+			}
+			int opt_value = opts[i].opt_value;
+			if (::setsockopt(
+				sockfd_,
+				level,
+				flag,
+				&opt_value, sizeof(opt_value)) < 0)
+			{
 				perror("setsockopt");
 			}
 		}
 	} else {
 		int opt = 1;
-		if (::setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+		if (::setsockopt(
+			sockfd_, 
+			SOL_SOCKET, 
+			SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+		{
 			perror("setsockopt");
 		}
 	}
-
-	return sockfd;
+	return 0;
 }
 
-/* Binds socket to address
- *	- takes as paramater an already creatd socket - sockfd
- *	- also takes the addrinfo or nullptr
- */
-int Socket::bind(int sockfd, const struct addrinfo* res) {
-	const struct addrinfo* target = (res != nullptr) ? res : res_;
-
-	if (target == nullptr) {
+/* Binds socket to address */
+int Socket::bind() {
+	if (res_ == nullptr) {
 		errno = EINVAL;
 		perror("bind");
-		::close(sockfd);
 		return -1;
 	}
 
-	if (::bind(sockfd, target->ai_addr, target->ai_addrlen) < 0) {
+	if (::bind(sockfd_, res_->ai_addr, res_->ai_addrlen) < 0) {
 		perror("bind");
-		::close(sockfd);
 		return -1;
 	}
-	return sockfd;
+	return 0;
 }
 
 /* 
  * Begins listening for client connection
  */
-int Socket::listen(int sockfd, int backlog, const struct addrinfo*) {
-	if (::listen(sockfd, backlog) < 0) {
+int Socket::listen(int backlog) {
+	if (::listen(sockfd_, backlog) < 0) {
 		perror("listen");
-		::close(sockfd);
 		return -1;
 	}
-	return sockfd;
+	return 0;
 }
 
 /* Accepts client connection
  *	- recommended to put inside server loop
- *	- takes a bound and listening socket
- *	- returns the client socket details
+ *	- returns the client fd
  */
-int Socket::accept(int sockfd) {
+int Socket::accept() {
 	sockaddr_storage client{};
 	socklen_t len = sizeof(client);
 
-	int clientfd = ::accept(sockfd, (sockaddr*)&client, &len);
+	int clientfd = ::accept(sockfd_, (sockaddr*)&client, &len);
 	if (clientfd < 0) {
 		perror("accept");
 		return -1;
@@ -156,20 +187,20 @@ int Socket::accept(int sockfd) {
  * Connect to server
  *	- for client use only
  */
-int Socket::connect(int sockfd, const struct addrinfo* res) {
-	const struct addrinfo* target = (res != nullptr) ? res : res_;
-
-	if (target == nullptr) {
+int Socket::connect() {
+	if (res_ == nullptr) {
 		errno = EINVAL;
 		perror("connect");
-		::close(sockfd);
 		return -1;
 	}
 
-	if (::connect(sockfd, target->ai_addr, target->ai_addrlen) < 0) {
+	if (::connect(sockfd_, res_->ai_addr, res_->ai_addrlen) < 0) {
 		perror("connect");
-		::close(sockfd);
 		return -1;
 	}
-	return sockfd;
+	return 0;
+}
+
+int Socket::fd() const {
+	return sockfd_;
 }

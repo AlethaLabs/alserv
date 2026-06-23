@@ -1,5 +1,5 @@
 CXX := clang++
-CXXFLAGS := -std=c++17 -Wall -Wextra -I../include
+CXXFLAGS := -std=c++23 -Wall -Wextra -I../include
 
 SRC := ../src/socket.cc
 TEST_SRCS := $(wildcard test_*.cc)

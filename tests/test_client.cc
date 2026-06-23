@@ -12,22 +12,18 @@ int main() {
 	hints.ai_socktype = SOCK_STREAM;
 
 	Socket socket;
-	int sockfd = socket.create("localhost", "8080", &hints);
-	assert(sockfd >= 0);
-
-	int conn = socket.connect(sockfd);
-	assert(conn >= 0);
+	assert(socket.create("localhost", "8080", &hints) == 0);
+	assert(socket.connect() == 0);
 
 	const char* msg = "Hello from client\n";
-	ssize_t sent = ::send(sockfd, msg, strlen(msg), 0);
+	ssize_t sent = ::send(socket.fd(), msg, strlen(msg), 0);
 	assert(sent > 0);
 
 	char buf[256] {};
-	ssize_t received = ::recv(sockfd, buf, sizeof(buf) - 1, 0);
+	ssize_t received = ::recv(socket.fd(), buf, sizeof(buf) - 1, 0);
 	if (received > 0) {
 		std::cout << "Server replied: " << buf;
 	}
 
-	::close(sockfd);
 	return 0;
 }
