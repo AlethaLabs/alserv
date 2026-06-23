@@ -3,7 +3,6 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-// TODO - Add all sockopt flags - *** man 7 socket for linux ***
 // Some sockopt flags only work for linux
 enum class SetSockFlag : int
 {
@@ -14,7 +13,7 @@ enum class SetSockFlag : int
 	NoRoute,   // SO_DONTROUTE   enables routing bypass for outgoing messages
 	Linger,	   // SO_LINGER	     linger on close if data present
 	Broadcast, // SO_BROADCAST   enables permission to transmit broadcast messages
-	OOBIN,	   // SO_OOBINLINE   enables reception of out-of-band data in ban
+	OutOB,	   // SO_OOBINLINE   enables reception of out-of-band data in ban
 	SndBuf,	   // SO_SNDBUF	     set buffer size for output
 	RcvBuf,	   // SO_RCVBUF      set buffer size for input
 	MinOut,	   // SO_SNDLOWAT    set minimum count for output
@@ -22,7 +21,7 @@ enum class SetSockFlag : int
 	TimeOut,   // SO_SNDTIMEO    set timeout value for output
 	TimeIn,	   // SO_RCVTIMEO    set timeout value for input
 	NoSigPipe, // SO_NOSIGPIPE   do not generate SIGPIPE, instead return EPIPE
-	Linger,	   // SO_LINGER_SEC  linger on close if data present with timeout in seconds
+	LingerSec, // SO_LINGER_SEC  linger on close if data present with timeout in seconds
 
 #ifdef __linux__
 	ABPF,  // SO_ATTACH_FILTER - takes structure sock_fprog

@@ -47,6 +47,34 @@ int translate_flag(SetSockFlag flag) {
 	switch (flag) {
 		case SetSockFlag::ReuseAddr:
 			return SO_REUSEADDR;
+		case SetSockFlag::Broadcast:
+			return SO_BROADCAST;
+		case SetSockFlag::Debug:
+			return SO_DEBUG;
+		case SetSockFlag::KeepUp:
+			return SO_KEEPALIVE;
+		case SetSockFlag::NoRoute:
+			return SO_DONTROUTE;
+		case SetSockFlag::Linger:
+			return SO_LINGER;
+		case SetSockFlag::OutOB:
+			return SO_OOBINLINE;
+		case SetSockFlag::SndBuf:
+			return SO_SNDBUF;
+		case SetSockFlag::RcvBuf:
+			return SO_RCVBUF;
+		case SetSockFlag::MinOut:
+			return SO_SNDLOWAT;
+		case SetSockFlag::MinIn:
+			return SO_RCVLOWAT;
+		case SetSockFlag::TimeOut:
+			return SO_SNDTIMEO;
+		case SetSockFlag::TimeIn:
+			return SO_RCVTIMEO;
+		case SetSockFlag::NoSigPipe:
+			return SO_NOSIGPIPE;
+		case SetSockFlag::LingerSec:
+			return SO_LINGER_SEC;
 #ifdef __linux__
 		case SetSockFlag::ABPF:
 			return SO_ATTACH_FILTER;
