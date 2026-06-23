@@ -6,26 +6,28 @@
 // Some sockopt flags only work for linux
 enum class SetSockFlag : int
 {
-	Debug,	   // SO_DEBUG       enables recording of debugging information
-	ReuseAddr, // SO_REUSEADDR   enables local address reuse
-	ReusePort, // SO_REUSEPORT   enables duplicate address and port bindings
-	KeepUp,	   // SO_KEEPALIVE   enables keep connections alive
-	NoRoute,   // SO_DONTROUTE   enables routing bypass for outgoing messages
-	Linger,	   // SO_LINGER	     linger on close if data present
-	Broadcast, // SO_BROADCAST   enables permission to transmit broadcast messages
-	OutOB,	   // SO_OOBINLINE   enables reception of out-of-band data in ban
-	SndBuf,	   // SO_SNDBUF	     set buffer size for output
-	RcvBuf,	   // SO_RCVBUF      set buffer size for input
-	MinOut,	   // SO_SNDLOWAT    set minimum count for output
-	MinIn,	   // SO_RCVLOWAT    set minimum count for input
-	TimeOut,   // SO_SNDTIMEO    set timeout value for output
-	TimeIn,	   // SO_RCVTIMEO    set timeout value for input
-	NoSigPipe, // SO_NOSIGPIPE   do not generate SIGPIPE, instead return EPIPE
-	LingerSec, // SO_LINGER_SEC  linger on close if data present with timeout in seconds
+	Debug,	   // SO_DEBUG       	enables recording of debugging information
+	ReuseAddr, // SO_REUSEADDR   	enables local address reuse
+	ReusePort, // SO_REUSEPORT  	enables duplicate address and port bindings
+	KeepUp,	   // SO_KEEPALIVE   	enables keep connections alive
+	NoRoute,   // SO_DONTROUTE   	enables routing bypass for outgoing messages
+	Linger,	   // SO_LINGER	     	linger on close if data present
+	Broadcast, // SO_BROADCAST   	enables permission to transmit broadcast messages
+	OutOB,	   // SO_OOBINLINE   	enables reception of out-of-band data in ban
+	SndBuf,	   // SO_SNDBUF	     	set buffer size for output
+	RcvBuf,	   // SO_RCVBUF      	set buffer size for input
+	MinOut,	   // SO_SNDLOWAT    	set minimum count for output
+	MinIn,	   // SO_RCVLOWAT    	set minimum count for input
+	TimeOut,   // SO_SNDTIMEO    	set timeout value for output
+	TimeIn,	   // SO_RCVTIMEO	set timeout value for input
 
-#ifdef __linux__
+#ifdef defined (__linux__)
 	ABPF,  // SO_ATTACH_FILTER - takes structure sock_fprog
 	AeBPF, // SO_ATTACH_BPF - same as above
+
+#elif defined (__APPLE__)
+	NoSigPipe, // SO_NOSIGPIPE   do not generate SIGPIPE, instead return EPIPE
+	LingerSec, // SO_LINGER_SEC  linger on close if data present with timeout in seconds
 #endif
 };
 
@@ -50,22 +52,7 @@ typedef struct {
 	int opt_value;
 } SockOpts;
 
-/*
-* Socket:
-*	--- Example ---
-*	Socket socket;
-*
-*	addrinfo hints {};
-* 	hints.ai_family = AF_INET;
-*	hints.ai_socktype = SOCK_STREAM;
-*	hints.ai_flags = AI_PASSIVE;
-*
-*	int sockfd = socket.create("localhost", "8080", &hints);
-*	assert(sockfd >= 0);
-*
-*	int bound = socket.bind();
-*	assert(bound >= 0);
-*/
+
 class Socket {
 	public:
 		Socket();
@@ -79,13 +66,13 @@ class Socket {
 		Socket(Socket&&) noexcept;
 		Socket& operator=(Socket&&) noexcept;
 
-		// Creates socket
+		/* ------------ Set up socket ------------ */
 		int create(
 			const char* host,
 			const char* service,
 			const struct addrinfo* hints = nullptr
 		);
-
+	
 		int setopts(const SockOpts* opts = nullptr, int opts_count = 0);	
 		int bind();
 		int listen(int backlog = 5);
@@ -93,7 +80,10 @@ class Socket {
 		int connect();
 
 		int fd() const;
+		
 
+		/* ------------ Send data through socket ----------- */
+		auto send_file(const char* filepath);
 	private:
 		int sockfd_;
 		struct addrinfo* res_;

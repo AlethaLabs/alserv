@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-#include "server/alsocket.h"
+#include "server/alsocket.hh"
 
 Socket::Socket() : sockfd_(-1), res_(nullptr) {}
 
@@ -42,7 +42,7 @@ Socket& Socket::operator=(Socket&& other) noexcept {
 /* 
  * Helpers for get sockopts:
 */
-// TODO - finish all flags
+// TODO - finish all flags for linux
 int translate_flag(SetSockFlag flag) {
 	switch (flag) {
 		case SetSockFlag::ReuseAddr:
@@ -71,15 +71,17 @@ int translate_flag(SetSockFlag flag) {
 			return SO_SNDTIMEO;
 		case SetSockFlag::TimeIn:
 			return SO_RCVTIMEO;
-		case SetSockFlag::NoSigPipe:
-			return SO_NOSIGPIPE;
-		case SetSockFlag::LingerSec:
-			return SO_LINGER_SEC;
-#ifdef __linux__
+#ifdef defined (__linux__)
 		case SetSockFlag::ABPF:
 			return SO_ATTACH_FILTER;
 		case SetSockFlag::AeBPF:
 			return SO_ATTACH_BPF;
+
+#elif defined (__APPLE__)
+		case SetSockFlag::NoSigPipe:
+			return SO_NOSIGPIPE;
+		case SetSockFlag::LingerSec:
+			return SO_LINGER_SEC;
 #endif
 		default:
 			return -1;
@@ -195,7 +197,8 @@ int Socket::listen(int backlog) {
 	return 0;
 }
 
-/* Accepts client connection
+/* 
+ * Accepts client connection
  *	- recommended to put inside server loop
  *	- returns the client fd
  */
@@ -232,3 +235,17 @@ int Socket::connect() {
 int Socket::fd() const {
 	return sockfd_;
 }
+
+#ifdef defined (__linux__)
+auto linux_data(const char* filepath) {
+	// Check if file exists
+
+	// Read meta data
+
+	// Send meta data
+
+	// Read file in chunks
+
+	// Send one chunk at a time 
+}
+#endif

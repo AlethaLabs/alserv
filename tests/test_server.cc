@@ -1,6 +1,7 @@
-#include "../include/server/alsocket.h"
+#include "../include/server/alsocket.hh"
 
 #include <cassert>
+#include <cstring>
 #include <netdb.h>
 #include <unistd.h>
 #include <iostream>
