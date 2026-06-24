@@ -2,6 +2,7 @@
 
 #include <sys/socket.h>
 #include <netdb.h>
+#include <sys/uio.h>
 
 // Some sockopt flags only work for linux
 enum class SetSockFlag : int
@@ -29,6 +30,11 @@ enum class SetSockFlag : int
 	NoSigPipe, // SO_NOSIGPIPE   do not generate SIGPIPE, instead return EPIPE
 	LingerSec, // SO_LINGER_SEC  linger on close if data present with timeout in seconds
 #endif
+};
+
+// TODO - Add all error flags
+enum class Errors {
+
 };
 
 // TODO - Add all socket levels
@@ -79,13 +85,13 @@ class Socket {
 		int connect();
 
 		int fd() const;
-		
+
 
 		/* ------------ Send data through socket ----------- */
 #if defined(__linux__) || defined(__LINUX__)
 		auto send_linux_file(const char *filepath);
 #elif defined(__APPLE__)
-		auto send_apple_file(std::filesystem::path filepath);
+		bool send_apple_file(std::filesystem::path filepath, struct sf_hdtr* meta = nullptr);
 #endif
 	private:
 		int sockfd_;

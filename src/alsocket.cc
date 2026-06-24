@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <cerrno>
+#include <cstring>
 #include <filesystem>
 
 #include <iostream>
@@ -253,17 +254,31 @@ auto send_linux_file(const char* filepath) {
 }
 
 #elif defined(__APPLE__)
-auto Socket::send_apple_file(std::filesystem::path filepath) {
+bool Socket::send_apple_file(std::filesystem::path filepath, struct sf_hdtr* meta) {
 	// Get parameters for sendfile()
 	int fd = open(filepath.c_str(), O_RDONLY);
+	if (fd < 0) {
+		std::cerr << "Error: " << std::strerror(errno) << "\n";
+		return false;
+	}
 	off_t curr_offset = 0;
 	off_t size = std::filesystem::file_size(filepath);
+	bool success = true;
 
 	while (curr_offset < size) {
-		off_t total = size - curr_offset;
-		off_t sent = total;
-		int result = sendfile(fd, sockfd_, curr_offset, &sent, NULL, 0);
+		off_t sent = size - curr_offset;
+		int result = sendfile(fd, sockfd_, curr_offset, &sent, meta, 0);
+		if (result < 0 && errno != EAGAIN) {
+			std::cerr << "sendfile: " << std::strerror(errno) << "\n";
+			success = false;
+			break;
+		}
+		
+		if (sent == 0) break;
+		curr_offset += sent;
 	}
+	close(fd);
+	return success;
 }
 #endif
 
