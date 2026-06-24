@@ -21,11 +21,11 @@ enum class SetSockFlag : int
 	TimeOut,   // SO_SNDTIMEO    	set timeout value for output
 	TimeIn,	   // SO_RCVTIMEO	set timeout value for input
 
-#ifdef defined (__linux__)
+#if defined(__linux__) || defined(__LINUX__)
 	ABPF,  // SO_ATTACH_FILTER - takes structure sock_fprog
 	AeBPF, // SO_ATTACH_BPF - same as above
 
-#elif defined (__APPLE__)
+#elif defined(__APPLE__)
 	NoSigPipe, // SO_NOSIGPIPE   do not generate SIGPIPE, instead return EPIPE
 	LingerSec, // SO_LINGER_SEC  linger on close if data present with timeout in seconds
 #endif
@@ -46,12 +46,11 @@ enum class GetSockInfo : int {
 };
 
 // TODO - Need to exted this to accept things such as bpf
-typedef struct {
+struct SockOpts {
 	SetSockFlag flag;
 	SetSockLevel level;
 	int opt_value;
-} SockOpts;
-
+};
 
 class Socket {
 	public:
@@ -83,7 +82,11 @@ class Socket {
 		
 
 		/* ------------ Send data through socket ----------- */
-		auto send_file(const char* filepath);
+#if defined(__linux__) || defined(__LINUX__)
+		auto send_linux_file(const char *filepath);
+#elif defined(__APPLE__)
+		auto send_apple_file(std::filesystem::path filepath);
+#endif
 	private:
 		int sockfd_;
 		struct addrinfo* res_;

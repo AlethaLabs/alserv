@@ -2,7 +2,10 @@
 #include <sys/types.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <cerrno>
+#include <filesystem>
 
 #include <iostream>
 
@@ -71,7 +74,7 @@ int translate_flag(SetSockFlag flag) {
 			return SO_SNDTIMEO;
 		case SetSockFlag::TimeIn:
 			return SO_RCVTIMEO;
-#ifdef defined (__linux__)
+#if defined(__linux__) || defined(__LINUX__)
 		case SetSockFlag::ABPF:
 			return SO_ATTACH_FILTER;
 		case SetSockFlag::AeBPF:
@@ -236,8 +239,8 @@ int Socket::fd() const {
 	return sockfd_;
 }
 
-#ifdef defined (__linux__)
-auto linux_data(const char* filepath) {
+#if defined(__linux__) || defined(__LINUX__)
+auto send_linux_file(const char* filepath) {
 	// Check if file exists
 
 	// Read meta data
@@ -246,6 +249,22 @@ auto linux_data(const char* filepath) {
 
 	// Read file in chunks
 
-	// Send one chunk at a time 
+	// Send one chunk at a time
+}
+
+#elif defined(__APPLE__)
+auto Socket::send_apple_file(std::filesystem::path filepath) {
+	// Get parameters for sendfile()
+	int fd = open(filepath.c_str(), O_RDONLY);
+	off_t curr_offset = 0;
+	off_t size = std::filesystem::file_size(filepath);
+
+	while (curr_offset < size) {
+		off_t total = size - curr_offset;
+		off_t sent = total;
+		int result = sendfile(fd, sockfd_, curr_offset, &sent, NULL, 0);
+	}
 }
 #endif
+
+// TODO - add encryption for sending files
