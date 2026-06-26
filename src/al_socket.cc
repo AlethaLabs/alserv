@@ -1,7 +1,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netdb.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <cerrno>
@@ -10,10 +9,12 @@
 
 #include <iostream>
 
-#include "server/alsocket.hh"
+#include "server/al_socket.hh"
 
+// Construct socket object
 Socket::Socket() : sockfd_(-1), res_(nullptr) {}
 
+// Close and freeaddrinfo
 Socket::~Socket() {
 	if (sockfd_ >= 0) {
 		::close(sockfd_);
@@ -75,6 +76,8 @@ int translate_flag(SetSockFlag flag) {
 			return SO_SNDTIMEO;
 		case SetSockFlag::TimeIn:
 			return SO_RCVTIMEO;
+		case SetSockFlag::ReusePort:
+			return SO_REUSEPORT;
 #if defined(__linux__) || defined(__LINUX__)
 		case SetSockFlag::ABPF:
 			return SO_ATTACH_FILTER;

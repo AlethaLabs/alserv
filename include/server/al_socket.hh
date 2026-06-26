@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <sys/uio.h>
+#include <filesystem>
 
 // Some sockopt flags only work for linux
 enum class SetSockFlag : int
@@ -59,41 +60,39 @@ struct SockOpts {
 };
 
 class Socket {
-	public:
-		Socket();
-		~Socket();
-		
-		// No duplicating sockets
-		Socket(const Socket&) = delete;
-		Socket& operator=(const Socket&) = delete;
+public:
+	Socket();
+	~Socket();
 
-		// Move sockets
-		Socket(Socket&&) noexcept;
-		Socket& operator=(Socket&&) noexcept;
+	// No duplicating sockets
+	Socket(const Socket &) = delete;
+	Socket &operator=(const Socket &) = delete;
 
-		/* ------------ Set up socket ------------ */
-		int create(
-			const char* host,
-			const char* service,
-			const struct addrinfo* hints = nullptr
-		);
-	
-		int setopts(const SockOpts* opts = nullptr, int opts_count = 0);	
-		int bind();
-		int listen(int backlog = 5);
-		int accept();
-		int connect();
+	// Move sockets
+	Socket(Socket &&) noexcept;
+	Socket &operator=(Socket &&) noexcept;
 
-		int fd() const;
+	/* ------------ Set up socket ------------ */
+	int create(
+	    const char *host,
+	    const char *service,
+	    const struct addrinfo *hints = nullptr);
 
+	int setopts(const SockOpts *opts = nullptr, int opts_count = 0);
+	int bind();
+	int listen(int backlog = 5);
+	int accept();
+	int connect();
 
-		/* ------------ Send data through socket ----------- */
+	int fd() const;
+
+	/* ------------ Send data through socket ----------- */
 #if defined(__linux__) || defined(__LINUX__)
-		auto send_linux_file(const char *filepath);
+	auto send_linux_file(const char *filepath);
 #elif defined(__APPLE__)
-		bool send_apple_file(std::filesystem::path filepath, struct sf_hdtr* meta = nullptr);
+	bool send_apple_file(std::filesystem::path filepath, struct sf_hdtr *meta = nullptr);
 #endif
-	private:
-		int sockfd_;
-		struct addrinfo* res_;
+private:
+	int sockfd_;
+	struct addrinfo *res_;
 };
