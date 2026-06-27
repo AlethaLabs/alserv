@@ -12,8 +12,8 @@ private:
         struct HuffNode {
                 int symbol;
                 uint64_t frequency;
-                HuffNode* left;
-                HuffNode* right;
+                std::unique_ptr<HuffNode> left;
+                std::unique_ptr<HuffNode> right;
 
                 HuffNode(int symbol, uint64_t frequency)
                     : symbol(symbol),
@@ -21,11 +21,6 @@ private:
                       left(nullptr),
                       right(nullptr)
                 {}
-
-                ~HuffNode() {
-                        delete left;
-                        delete right;
-                }
         };
 
         struct Compare {
@@ -39,6 +34,8 @@ private:
                 uint8_t len;
         };
 
+        std::vector<uint8_t> read();
+
         void build_table();
         void make_tree();
         void gen_codes(HuffNode* node, uint64_t bits, uint8_t len);
@@ -49,7 +46,7 @@ private:
 
         std::unordered_map<uint8_t, Bits> codes_;
 
-        HuffNode *root_ = nullptr;
+        std::unique_ptr<HuffNode> root_;
 
         std::vector<uint8_t> file_data_;
 
@@ -63,6 +60,5 @@ public:
         File(File &&) noexcept;
         File &operator=(File &&) noexcept;
 
-        std::vector<uint8_t> read();
         int compress(std::vector<uint8_t> &bytes);
 };

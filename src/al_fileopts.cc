@@ -3,6 +3,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/types.h>
 
 #include "../include/fileopts/al_fileopts.hh"
 
@@ -25,4 +26,27 @@ File& File::operator=(File&& other) noexcept {
                 fd_ = std::exchange(other.fd_, -1);
         }
         return *this;
+}
+
+std::vector<uint8_t> File::read() {
+        off_t file_size = lseek(fd_, 0, SEEK_END);
+        if (file_size == -1)
+                throw std::runtime_error(std::string("Failed to seek file: ") + strerror(errno));
+
+        if (lseek(fd_, 0, SEEK_SET) == -1)
+                throw std::runtime_error(std::string("Failed to seek file: ") + strerror(errno));
+
+        file_data_.resize(static_cast<size_t>(file_size));
+
+        off_t curr_offset = 0;
+        while (curr_offset < file_size) {
+                ssize_t n = ::read(fd_, file_data_.data() + curr_offset,
+                                   static_cast<size_t>(file_size - curr_offset));
+                if (n == -1)
+                        throw std::runtime_error(std::string("Failed to read file: ") + strerror(errno));
+                if (n == 0)
+                        break;
+                curr_offset += n;
+        }
+        return file_data_;
 }
